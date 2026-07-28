@@ -5,6 +5,19 @@ header('Content-Type: application/json; charset=UTF-8');
 header('Cache-Control: no-store, no-cache, must-revalidate');
 header('Pragma: no-cache');
 
+// CORS
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+
+// Preflight Request
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
+$secretKey = "0x4AAAAAAD9oSBcRwd3nWvUPJHKQYLb7lM8";
+
 $response = [
     "status"  => 500,
     "success" => false,
@@ -19,13 +32,24 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$name           = trim($_POST['name'] ?? '');
-$email          = trim($_POST['email'] ?? '');
-$phone          = trim($_POST['phone'] ?? '');
-$service        = trim($_POST['service'] ?? '');
-$location       = trim($_POST['location'] ?? '');
-$preferred_date = trim($_POST['preferred_date'] ?? '');
-$message        = trim($_POST['message'] ?? '');
+$input = json_decode(file_get_contents("php://input"), true);
+$name           = trim($input['name'] ?? '');
+$email          = trim($input['email'] ?? '');
+$phone          = trim($input['phone'] ?? '');
+$service        = trim($input['service'] ?? '');
+$location       = trim($input['location'] ?? '');
+$preferred_date = trim($input['preferred_date'] ?? '');
+$message        = trim($input['message'] ?? '');
+$turnstileToken = $input['turnstileToken'] ?? '';
+
+// $name           = trim($_POST['name'] ?? '');
+// $email          = trim($_POST['email'] ?? '');
+// $phone          = trim($_POST['phone'] ?? '');
+// $service        = trim($_POST['service'] ?? '');
+// $location       = trim($_POST['location'] ?? '');
+// $preferred_date = trim($_POST['preferred_date'] ?? '');
+// $message        = trim($_POST['message'] ?? '');
+// $turnstileToken = $_POST['cf-turnstile-response'] ?? '';
 
 if ($name === '') {
     $response["status"]  = 400;
@@ -91,6 +115,53 @@ if (strlen($message) > 1000) {
     exit;
 }
 
+if (empty($turnstileToken)) {
+    $response["status"] = 400;
+    $response["success"] = false;
+    $response["message"] = "Please complete the security check.";
+    echo json_encode($response);
+    exit;
+}
+
+$verifyURL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+
+// POST Data
+$postData = [
+    "secret"   => $secretKey,
+    "response" => $turnstileToken,
+    "remoteip" => $_SERVER['REMOTE_ADDR']
+];
+
+// cURL
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $verifyURL);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+$result = curl_exec($ch);
+
+if (curl_errno($ch)) {
+    $response["status"] = 500;
+    $response["success"] = false;
+    $response["message"] = "Unable to verify security check.";
+    curl_close($ch);
+    echo json_encode($response);
+    exit;
+}
+
+curl_close($ch);
+
+$turnstileResult = json_decode($result, true);
+
+if (!$turnstileResult || empty($turnstileResult['success']) ) {
+    $response["status"] = 400;
+    $response["success"] = false;
+    $response["message"] = "Security verification failed.";
+    echo json_encode($response);
+    exit;
+}
+
 $name           = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
 $email          = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
 $phone          = htmlspecialchars($phone, ENT_QUOTES, 'UTF-8');
@@ -136,7 +207,7 @@ $adminBody = '
                                 </tr>
                                 <tr style="background:#ffffff;">
                                     <td style="font-weight:700;color:#111827;">Phone</td>
-                                    <td style="color:#111827;">'.($phone ?: 'Not provided').'</td>
+                                    <td style="color:#111827;">'.$phone.'</td>
                                 </tr>
                                 <tr>
                                     <td style="font-weight:700;color:#111827;">Service</td>
@@ -144,11 +215,11 @@ $adminBody = '
                                 </tr>
                                 <tr style="background:#ffffff;">
                                     <td style="font-weight:700;color:#111827;">Location</td>
-                                    <td style="color:#111827;">'.($location ?: 'Not provided').'</td>
+                                    <td style="color:#111827;">'.$location.'</td>
                                 </tr>
                                 <tr>
                                     <td style="font-weight:700;color:#111827;">Preferred Date</td>
-                                    <td style="color:#111827;">'.($preferred_date ?: 'Not provided').'</td>
+                                    <td style="color:#111827;">'.$preferred_date.'</td>
                                 </tr>
                                 <tr>
                                     <td valign="top" style="font-weight:700;color:#111827;">Message</td>

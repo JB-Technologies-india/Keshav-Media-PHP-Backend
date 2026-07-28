@@ -1,10 +1,8 @@
 <?php
 
 $email_smtp = "smtp.gmail.com";
-// $sender_email_id = "info@keshavmedia.com";
-// $email_password = "ecqr kbsb bwgl icjl";
-$sender_email_id = "demoraju123@gmail.com";
-$email_password = "lrcl gilt iehx okme";
+$sender_email_id = "info@keshavmedia.com";
+$email_password = "ecqr kbsb bwgl icjl";
 $email_port = "587";
 $sender_name = "Keshav Media";
 // $to ="";
