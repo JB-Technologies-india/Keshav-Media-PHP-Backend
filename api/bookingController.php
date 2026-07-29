@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-$secretKey = "0x4AAAAAAD9oSBcRwd3nWvUPJHKQYLb7lM8";
+$secretKey = "0x4AAAAAAEBDpY0iKE3LP8yUoyQMLnRt0Yk";
 
 $response = [
     "status"  => 500,
