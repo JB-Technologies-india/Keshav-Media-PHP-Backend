@@ -1,9 +1,7 @@
-name: Deploy PHP Project
+name: Manual PHP Deploy
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -26,3 +24,4 @@ jobs:
           exclude: |
             **/.git*
             **/.github/**
+            **/.env
